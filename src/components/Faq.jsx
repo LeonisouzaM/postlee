@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 
 const faqs = [
   {
-    question: 'A Postlee possui algum risco de banir meu Instagram?',
+    question: 'A Posta possui algum risco de banir meu Instagram?',
     answer: 'Absolutamente não. Nós utilizamos exclusivamente a Graph API Oficial da Meta. Ao contrário de ferramentas piratas que imitam um celular (o que causa Shadowban), nossa conexão é aprovada e auditada pelo próprio Facebook. Você está 100% seguro.'
   },
   {

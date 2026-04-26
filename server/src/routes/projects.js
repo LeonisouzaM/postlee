@@ -111,6 +111,93 @@ router.put('/:id', authenticate, requireProjectOwner, async (req, res, next) => 
   }
 });
 
+// ── Atualizar DNA da Marca ───────────────────────────────
+router.put('/:id/brand-dna', authenticate, requireProjectOwner, async (req, res, next) => {
+  try {
+    const { brand_name, primary_color, secondary_color, font_title, font_body, brand_description, image_style, design_style } = req.body;
+
+    const result = await query(
+      `UPDATE brand_dna 
+       SET brand_name = COALESCE($1, brand_name),
+           primary_color = COALESCE($2, primary_color),
+           secondary_color = COALESCE($3, secondary_color),
+           font_title = COALESCE($4, font_title),
+           font_body = COALESCE($5, font_body),
+           brand_description = COALESCE($6, brand_description),
+           image_style = COALESCE($7, image_style),
+           design_style = COALESCE($8, design_style)
+       WHERE project_id = $9
+       RETURNING *`,
+      [brand_name, primary_color, secondary_color, font_title, font_body, brand_description, image_style, design_style, req.params.id]
+    );
+
+    res.json({ brand_dna: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.put('/:id/full-dna', authenticate, requireProjectOwner, async (req, res, next) => {
+  try {
+    const { dna } = req.body;
+    console.log('📝 RECEBENDO DNA:', {
+      projectId: req.params.id,
+      userId: req.user.id,
+      dnaKeys: dna ? Object.keys(dna) : 'nulo'
+    });
+
+    if (!dna) {
+      return res.status(400).json({ error: 'Dados do DNA não fornecidos' });
+    }
+
+    // 1. Sincronizar dados básicos na tabela projects para compatibilidade
+    await query(
+      `UPDATE projects 
+       SET niche = COALESCE($1, niche), 
+           target_audience = COALESCE($2, target_audience),
+           tone_of_voice = COALESCE($3, tone_of_voice)
+       WHERE id = $4`,
+      [
+        dna.nicho, 
+        dna.cliente_ideal, 
+        dna.tom_de_voz || 'profissional',
+        req.params.id
+      ]
+    );
+
+    // 2. Salvar JSON completo e atualizar campos visuais na brand_dna (UPSERT)
+    // Usando JSON.stringify para garantir que o drive trate como string se necessário
+    const result = await query(
+      `INSERT INTO brand_dna (project_id, full_config, primary_color)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (project_id) 
+       DO UPDATE SET 
+          full_config = EXCLUDED.full_config,
+          primary_color = EXCLUDED.primary_color,
+          updated_at = NOW()
+       RETURNING *`,
+      [
+        req.params.id,
+        JSON.stringify(dna),
+        dna.cor_da_marca
+      ]
+    );
+
+    console.log('✅ DNA SALVO COM SUCESSO');
+    res.json({ 
+      message: 'DNA da Marca sincronizado com sucesso',
+      brand_dna: result.rows[0] 
+    });
+  } catch (err) {
+    console.error('❌ ERRO CRÍTICO AO SALVAR DNA:', {
+      message: err.message,
+      stack: err.stack,
+      detail: err.detail
+    });
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Deletar projeto ──────────────────────────────────────
 router.delete('/:id', authenticate, requireProjectOwner, async (req, res, next) => {
   try {

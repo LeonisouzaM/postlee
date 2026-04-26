@@ -1,59 +1,58 @@
 import React from 'react';
-import { Sparkles, Palette, Share2 } from 'lucide-react';
+import { Target, Palette, Zap } from 'lucide-react';
 
 const features = [
-  { 
-    icon: Sparkles, 
-    title: 'IA que entende seu nicho', 
-    desc: 'Nossa IA analisa o histórico da sua marca e o comportamento do seu público para gerar textos e ideias que conectam de verdade.',
-    colSpan: 'md:col-span-2',
-    iconColor: 'text-indigo-600',
-    iconBg: 'bg-indigo-50',
+  {
+    title: 'IA treinada para performar',
+    description: 'Entenda seu nicho, seu público e sugere conteúdos que geram engajamento.',
+    icon: Target,
+    color: 'bg-indigo-50 text-[#5c54ed]'
   },
-  { 
-    icon: Palette,  
-    title: 'Design coerente', 
-    desc: 'Seu manual da marca aplicado automaticamente em cada carrossel gerado.',
-    colSpan: 'md:col-span-1',
-    iconColor: 'text-violet-600',
-    iconBg: 'bg-violet-50',
+  {
+    title: 'Design que representa',
+    description: 'Templates 100% editáveis pensados para destacar sua mensagem.',
+    icon: Palette,
+    color: 'bg-indigo-50 text-[#5c54ed]'
   },
-  { 
-    icon: Share2,       
-    title: 'Publicação automatizada e inteligente', 
-    desc: 'O sistema identifica os horários de maior engajamento dos seus seguidores e agenda a publicação no momento exato, nas plataformas certas.',
-    colSpan: 'md:col-span-3',
-    iconColor: 'text-emerald-600',
-    iconBg: 'bg-emerald-50',
-  },
+  {
+    title: 'Publicação simplificada',
+    description: 'Agende, publique e otimize seus carrosséis em poucos cliques.',
+    icon: Zap,
+    color: 'bg-indigo-50 text-[#5c54ed]'
+  }
 ];
 
 export default function Solution() {
   return (
-    <section className="section-padding bg-[#fafafa]">
-      <div className="max-w-5xl mx-auto px-6">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="tag mb-4">Plataforma</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 tracking-tight mb-4">
-            O copywriter que não tira férias,<br />
-            o designer que nunca atrasa.
-          </h2>
-          <p className="text-zinc-500 text-[16px] leading-relaxed">
-            A dor não é postar — é saber o que postar e manter a qualidade visual
-            todos os dias. A Postlee resolve as duas coisas.
-          </p>
-        </div>
+    <section id="produto" className="py-24 bg-white relative overflow-hidden">
+      <div className="section-container">
+        <div className="grid lg:grid-cols-3 gap-12 items-center">
+          
+          <div className="lg:col-span-1">
+             <div className="badge mb-4">FEITO PARA QUEM CRIA</div>
+             <h2 className="text-4xl font-extrabold text-zinc-900 leading-tight mb-6">
+                Menos tela em branco. <br/>
+                Mais conteúdo que funciona.
+             </h2>
+             <p className="text-gray-500 text-lg mb-8">
+                A IA da Posta.ai entende sua marca, seu público e cria carrosséis que geram resultado todos os dias.
+             </p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {features.map(({ icon: Icon, title, desc, colSpan, iconColor, iconBg }, i) => (
-            <div key={i} className={`${colSpan} p-8 rounded-2xl bg-white border border-zinc-200/80 transition-all duration-200 hover:shadow-lg hover:shadow-zinc-900/5 hover:border-zinc-300 group`}>
-              <div className={`w-11 h-11 rounded-xl ${iconBg} flex items-center justify-center mb-5`}>
-                <Icon size={20} className={iconColor} />
+          <div className="lg:col-span-2 grid md:grid-cols-3 gap-6">
+            {features.map((f, i) => (
+              <div key={i} className="p-8 bg-[#fafafa] border border-gray-100 rounded-3xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+                <div className={`w-12 h-12 rounded-2xl ${f.color} flex items-center justify-center mb-6 shadow-inner`}>
+                  <f.icon size={24} />
+                </div>
+                <h3 className="text-xl font-bold text-zinc-900 mb-3">{f.title}</h3>
+                <p className="text-gray-500 leading-relaxed text-sm">
+                  {f.description}
+                </p>
               </div>
-              <h3 className="text-lg font-semibold text-zinc-900 mb-2">{title}</h3>
-              <p className="text-zinc-500 text-[14px] leading-relaxed">{desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+
         </div>
       </div>
     </section>

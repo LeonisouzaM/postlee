@@ -1,52 +1,71 @@
 import React from 'react';
+import { Camera, Globe, Mail, Share2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const navLinks = {
-  Produto:  ['Funcionalidades', 'Como funciona', 'Preços', 'Changelog'],
-  Recursos: ['Blog', 'Tutoriais', 'Suporte', 'API Docs'],
-  Legal:    ['Privacidade', 'Termos', 'Contato'],
-};
+const columns = [
+  {
+    title: 'Produto',
+    links: ['Como funciona', 'Templates', 'Integrações', 'Preços']
+  },
+  {
+    title: 'Recursos',
+    links: ['Blog', 'Tutoriais', 'Suporte', 'API Docs']
+  },
+  {
+    title: 'Empresa',
+    links: ['Sobre nós', 'Carreiras', 'Contato', 'Política de Privacidade', 'Termos de Uso']
+  }
+];
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-zinc-200">
-      <div className="max-w-6xl mx-auto px-6 py-14 grid md:grid-cols-[200px_1fr] gap-12">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <span className="text-white font-bold text-[10px]">P</span>
+    <footer className="bg-white border-t border-gray-100 pt-20 pb-10">
+      <div className="section-container">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-20">
+          
+          <div className="lg:col-span-2">
+            <Link to="/" className="flex items-center gap-2 mb-6">
+               <div className="w-8 h-8 rounded-lg bg-[#5c54ed] flex items-center justify-center">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <path d="M12 4L4 12V20H12M12 4L20 12V20H12M12 4V20" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                 </svg>
+               </div>
+               <span className="font-bold text-xl tracking-tight text-zinc-900">
+                 Posta<span className="font-medium text-gray-400">.ai</span>
+               </span>
+            </Link>
+            <p className="text-gray-400 text-sm max-w-[280px] leading-relaxed mb-8 font-medium">
+              A plataforma completa de IA e design para criadores, agências e marcas que querem crescer.
+            </p>
+            <div className="flex gap-4">
+              {[Camera, Globe, Mail, Share2].map((Icon, i) => (
+                <a key={i} href="#" className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-[#5c54ed] hover:bg-indigo-50 transition-all border border-gray-100 shadow-sm">
+                  <Icon size={16} />
+                </a>
+              ))}
             </div>
-            <span className="font-semibold tracking-tight text-zinc-900">
-              Postlee<span className="text-indigo-500 font-normal">.ai</span>
-            </span>
           </div>
-          <p className="text-xs text-zinc-500 leading-relaxed max-w-[180px]">
-            Automação inteligente de conteúdo para criadores e marcas que não param.
-          </p>
-        </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-          {Object.entries(navLinks).map(([section, links]) => (
-            <div key={section}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-900 mb-3">{section}</p>
-              <ul className="flex flex-col gap-2">
-                {links.map(link => (
+          {columns.map((col, i) => (
+            <div key={i}>
+              <h4 className="font-bold text-zinc-900 mb-6 text-sm uppercase tracking-widest">{col.title}</h4>
+              <ul className="space-y-4">
+                {col.links.map(link => (
                   <li key={link}>
-                    <a href="#" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">{link}</a>
+                    <a href="#" className="text-gray-500 hover:text-[#5c54ed] transition-colors text-sm font-medium">
+                      {link}
+                    </a>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
-      </div>
 
-      <div className="border-t border-zinc-100">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[11px] text-zinc-400">© 2026 Postlee Tecnologia Ltda. Todos os direitos reservados.</p>
-          <div className="flex items-center gap-4">
-            <a href="#" className="text-[11px] text-zinc-400 hover:text-zinc-900 transition-colors">Twitter</a>
-            <a href="#" className="text-[11px] text-zinc-400 hover:text-zinc-900 transition-colors">LinkedIn</a>
-          </div>
+        <div className="pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">
+            © 2026 Posta.ai. TODOS OS DIREITOS RESERVADOS.
+          </p>
         </div>
       </div>
     </footer>

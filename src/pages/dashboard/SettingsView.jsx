@@ -1,7 +1,51 @@
-import React from 'react';
-import { User, Zap, Globe, CreditCard, Shield, Plus, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, Zap, Globe, CreditCard, Shield, Plus, Clock, Loader2, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api';
 
 export default function SettingsView() {
+  const { user, activeProject, logout } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState({ connected: false });
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      if (!activeProject) return;
+      try {
+        const res = await api.get(`/projects/${activeProject.id}/instagram/status`);
+        setStatus(res);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStatus();
+  }, [activeProject]);
+
+  const handleDisconnect = async () => {
+    if (!activeProject || !window.confirm("Deseja realmente desconectar seu Instagram?")) return;
+    setDisconnecting(true);
+    try {
+      await api.delete(`/projects/${activeProject.id}/instagram/disconnect`);
+      setStatus({ connected: false });
+      alert("Instagram desconectado com sucesso.");
+    } catch (err) {
+      alert("Erro ao desconectar: " + err.message);
+    } finally {
+      setDisconnecting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
+        <p>Carregando suas configurações...</p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-8 animate-fade-in pb-10 max-w-4xl mx-auto">
       {/* Header */}
@@ -24,15 +68,30 @@ export default function SettingsView() {
                 <p className="text-sm text-zinc-500">Conecte sua Conta Comercial do Instagram e Página do Facebook.</p>
               </div>
             </div>
-            <button className="text-sm font-semibold text-rose-600 bg-rose-50 px-4 py-2 rounded-lg hover:bg-rose-100 transition-colors">
-              Desconectar
-            </button>
+            {status.connected ? (
+              <button 
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                className="text-sm font-semibold text-rose-600 bg-rose-50 px-4 py-2 rounded-lg hover:bg-rose-100 transition-colors disabled:opacity-50"
+              >
+                {disconnecting ? 'Processando...' : 'Desconectar'}
+              </button>
+            ) : (
+                <button 
+                   onClick={() => window.location.href='/app'} // Redirect to dashboard to connect
+                   className="text-sm font-semibold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
+                >
+                  Conectar agora
+                </button>
+            )}
           </div>
-          <div className="bg-zinc-50 px-6 py-4 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-medium text-zinc-700">Conectado como <strong>@minhamarca</strong></span>
-            <span className="text-xs text-zinc-400 ml-auto">Atualizado há 2 horas</span>
-          </div>
+          {status.connected && (
+            <div className="bg-zinc-50 px-6 py-4 flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm font-medium text-zinc-700">Conectado como <strong>@{status.username}</strong></span>
+              {status.connected_at && <span className="text-xs text-zinc-400 ml-auto">Desde {new Date(status.connected_at).toLocaleDateString()}</span>}
+            </div>
+          )}
         </section>
 
         {/* AutoFeed Configuration */}
@@ -95,14 +154,11 @@ export default function SettingsView() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wide">Nome Completo</label>
-              <input type="text" defaultValue="Leoni Medeiros" className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20" />
+              <input type="text" readOnly value={user.name} className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-zinc-500 outline-none" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wide">E-mail de Acesso</label>
-              <input type="email" defaultValue="leoni@exemplo.com" className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-zinc-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20" />
-            </div>
-            <div className="md:col-span-2 flex justify-end mt-2">
-              <button className="btn-ghost px-5 py-2 text-sm font-semibold">Salvar Perfil</button>
+              <input type="email" readOnly value={user.email} className="w-full bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 text-sm text-zinc-500 outline-none" />
             </div>
           </div>
         </section>
@@ -116,7 +172,7 @@ export default function SettingsView() {
               </div>
               <div>
                 <h2 className="text-base font-semibold text-zinc-900">Assinatura Atual</h2>
-                <p className="text-sm text-zinc-500">Você está atualmente no plano <strong className="text-violet-600">Plus</strong>.</p>
+                <p className="text-sm text-zinc-500">Você está atualmente no plano <strong className="text-violet-600 capitalize">{user.plan}</strong>.</p>
               </div>
             </div>
             <button className="btn-primary bg-zinc-900 hover:bg-zinc-800 shadow-none py-2 px-5 text-sm">

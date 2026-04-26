@@ -1,14 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Simula validação e redireciona para o app
-    navigate('/app');
+    setError('');
+    setIsLoading(true);
+    
+    try {
+      await login(email, password);
+      navigate('/app');
+    } catch (err) {
+      setError(err.message || 'Erro ao fazer login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -21,7 +37,7 @@ export default function Login() {
             <span className="text-white font-bold text-sm">P</span>
           </div>
           <span className="font-semibold tracking-tight text-zinc-900 text-lg">
-            Postlee<span className="text-indigo-500 font-normal">.ai</span>
+            Posta<span className="text-indigo-500 font-normal">.ai</span>
           </span>
         </NavLink>
         <NavLink to="/" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 flex items-center gap-1 transition-colors">
@@ -57,14 +73,24 @@ export default function Login() {
             <div className="flex-grow border-t border-zinc-200"></div>
           </div>
 
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-red-700 text-sm">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <p>{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Seu E-mail</label>
               <input 
                 type="email" 
                 required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                disabled={isLoading}
                 placeholder="leoni@agencia.com"
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
               />
             </div>
             
@@ -76,13 +102,18 @@ export default function Login() {
               <input 
                 type="password" 
                 required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                disabled={isLoading}
                 placeholder="••••••••"
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
               />
             </div>
 
-            <button type="submit" className="w-full btn-primary py-3.5 mt-2 shadow-md shadow-indigo-600/10 text-sm group">
-              Fazer Login <ArrowRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
+            <button type="submit" disabled={isLoading} className="w-full btn-primary py-3.5 mt-2 shadow-md shadow-indigo-600/10 text-sm group disabled:opacity-75">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (
+                <>Fazer Login <ArrowRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" /></>
+              )}
             </button>
           </form>
 

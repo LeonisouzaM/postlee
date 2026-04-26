@@ -46,10 +46,35 @@ router.get('/:id/posts', authenticate, requireProjectOwner, async (req, res, nex
   }
 });
 
+// ── Obter post individual ────────────────────────────────
+router.get('/:id/posts/:postId', authenticate, requireProjectOwner, async (req, res, next) => {
+  try {
+    const result = await query(
+      `SELECT p.*,
+              (SELECT json_agg(s ORDER BY s.order_index) FROM slides s WHERE s.post_id = p.id) as slides,
+              bd.primary_color, bd.secondary_color, bd.brand_name
+       FROM posts p 
+       LEFT JOIN brand_dna bd ON bd.project_id = p.project_id
+       WHERE p.id = $1 AND p.project_id = $2`,
+      [req.params.postId, req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Post não encontrado' });
+    }
+
+    res.json({ post: result.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Gerar post com IA ────────────────────────────────────
 router.post('/:id/posts/generate', authenticate, requireProjectOwner, async (req, res, next) => {
   try {
     const { topic, num_slides = 7 } = req.body;
+    console.log(`🚀 [GENERATE] Tema: "${topic}", Slides: ${num_slides}, Projeto: ${req.params.id}`);
+    
     if (!topic) {
       return res.status(400).json({ error: 'Informe o tema do post' });
     }
@@ -62,7 +87,7 @@ router.post('/:id/posts/generate', authenticate, requireProjectOwner, async (req
 
     // Get project + brand info
     const project = await query(
-      `SELECT p.*, bd.brand_name, bd.primary_color, bd.font_title
+      `SELECT p.*, bd.brand_name, bd.primary_color, bd.font_title, bd.image_style, bd.design_style, bd.brand_description, bd.full_config
        FROM projects p
        LEFT JOIN brand_dna bd ON bd.project_id = p.id
        WHERE p.id = $1`,
@@ -74,27 +99,50 @@ router.post('/:id/posts/generate', authenticate, requireProjectOwner, async (req
     const content = await aiService.generateCarousel({
       topic,
       niche: proj.niche,
+      audience: proj.target_audience,
       toneOfVoice: proj.tone_of_voice,
       brandName: proj.brand_name || proj.name,
+      brandDescription: proj.brand_description,
+      imageStyle: proj.image_style,
+      designStyle: proj.design_style,
       numSlides: num_slides,
+      brandConfig: proj.full_config,
     });
 
     // Save post
+    const data = content.carrossel || content;
     const postResult = await query(
-      `INSERT INTO posts (project_id, status, caption, hashtags, source, ai_prompt)
-       VALUES ($1, 'pending', $2, $3, 'ai', $4)
+      `INSERT INTO posts (project_id, status, caption, hashtags, source, ai_prompt, style_config)
+       VALUES ($1, 'pending', $2, $3, 'ai', $4, $5)
        RETURNING *`,
-      [req.params.id, content.caption, content.hashtags, topic]
+      [
+        req.params.id, 
+        data.legenda_instagram || '', 
+        data.hashtags || [], 
+        topic, 
+        { design: data.design, meta: { angulo: data.angulo_escolhido } }
+      ]
     );
     const post = postResult.rows[0];
 
     // Save slides
-    for (let i = 0; i < content.slides.length; i++) {
-      const slide = content.slides[i];
+    for (let i = 0; i < data.slides.length; i++) {
+      const slide = data.slides[i];
       await query(
-        `INSERT INTO slides (post_id, order_index, text_headline, text_body, text_cta)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [post.id, i, slide.headline, slide.body, slide.cta || null]
+        `INSERT INTO slides (post_id, order_index, text_headline, text_body, text_cta, style_overrides)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          post.id, 
+          i, 
+          slide.titulo, 
+          slide.texto_apoio || slide.corpo, 
+          null,
+          { 
+            tipo: slide.tipo, 
+            destaque_visual: slide.destaque_visual,
+            nota_design: slide.nota_design 
+          }
+        ]
       );
     }
 
@@ -139,7 +187,7 @@ router.post('/:id/posts/from-news', authenticate, requireProjectOwner, async (re
       `INSERT INTO posts (project_id, status, caption, hashtags, source, source_url, ai_prompt)
        VALUES ($1, 'pending', $2, $3, 'news', $4, $5)
        RETURNING *`,
-      [req.params.id, content.caption, content.hashtags, url, `Notícia: ${url}`]
+      [req.params.id, content.caption || '', content.hashtags || [], url, `Notícia: ${url}`]
     );
     const post = postResult.rows[0];
 
@@ -167,7 +215,7 @@ router.post('/:id/posts/from-news', authenticate, requireProjectOwner, async (re
 // ── Editar post ──────────────────────────────────────────
 router.put('/:id/posts/:postId', authenticate, requireProjectOwner, async (req, res, next) => {
   try {
-    const { caption, hashtags } = req.body;
+    const { caption, hashtags, slides } = req.body;
 
     const result = await query(
       `UPDATE posts SET caption = COALESCE($1, caption), hashtags = COALESCE($2, hashtags)
@@ -178,6 +226,19 @@ router.put('/:id/posts/:postId', authenticate, requireProjectOwner, async (req, 
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Post não encontrado' });
+    }
+
+    // Update slides if provided
+    if (slides && Array.isArray(slides)) {
+      for (const slide of slides) {
+        if (slide.id) {
+          await query(
+            `UPDATE slides SET text_headline = $1, text_body = $2, text_cta = $3
+             WHERE id = $4 AND post_id = $5`,
+            [slide.text_headline, slide.text_body, slide.text_cta, slide.id, req.params.postId]
+          );
+        }
+      }
     }
 
     res.json({ post: result.rows[0] });
@@ -246,7 +307,7 @@ router.post('/:id/posts/:postId/regenerate', authenticate, requireProjectOwner, 
 
     const topic = post.rows[0].ai_prompt || 'conteúdo genérico';
     const project = await query(
-      `SELECT p.*, bd.brand_name FROM projects p
+      `SELECT p.*, bd.brand_name, bd.brand_description, bd.image_style, bd.design_style, bd.full_config FROM projects p
        LEFT JOIN brand_dna bd ON bd.project_id = p.id WHERE p.id = $1`,
       [req.params.id]
     );
@@ -255,14 +316,24 @@ router.post('/:id/posts/:postId/regenerate', authenticate, requireProjectOwner, 
     const content = await aiService.generateCarousel({
       topic,
       niche: proj.niche,
+      audience: proj.target_audience,
       toneOfVoice: proj.tone_of_voice,
       brandName: proj.brand_name || proj.name,
+      brandDescription: proj.brand_description,
+      imageStyle: proj.image_style,
+      designStyle: proj.design_style,
+      brandConfig: proj.full_config,
     });
 
     // Update post
     await query(
-      `UPDATE posts SET caption = $1, hashtags = $2, status = 'pending' WHERE id = $3`,
-      [content.caption, content.hashtags, req.params.postId]
+      `UPDATE posts SET caption = $1, hashtags = $2, status = 'pending', style_config = $3 WHERE id = $4`,
+      [
+        content.legenda_instagram, 
+        content.hashtags_sugeridas, 
+        { design: content.design, meta: content.meta }, 
+        req.params.postId
+      ]
     );
 
     // Replace slides
@@ -270,8 +341,22 @@ router.post('/:id/posts/:postId/regenerate', authenticate, requireProjectOwner, 
     for (let i = 0; i < content.slides.length; i++) {
       const slide = content.slides[i];
       await query(
-        `INSERT INTO slides (post_id, order_index, text_headline, text_body, text_cta) VALUES ($1, $2, $3, $4, $5)`,
-        [req.params.postId, i, slide.headline, slide.body, slide.cta || null]
+        `INSERT INTO slides (post_id, order_index, text_headline, text_body, text_cta, style_overrides)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          req.params.postId, 
+          i, 
+          slide.titulo, 
+          slide.corpo, 
+          null,
+          { 
+            tipo: slide.tipo, 
+            subtitulo: slide.subtitulo, 
+            destaque_visual: slide.destaque_visual, 
+            emoji: slide.emoji, 
+            nota_design: slide.nota_design 
+          }
+        ]
       );
     }
 
@@ -282,6 +367,32 @@ router.post('/:id/posts/:postId/regenerate', authenticate, requireProjectOwner, 
     );
 
     res.json({ post: fullPost.rows[0] });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Gerar imagem do slide com IA ─────────────────────────
+router.post('/:id/posts/:postId/slides/:slideId/generate-image', authenticate, requireProjectOwner, async (req, res, next) => {
+  try {
+    const slide = await query(
+      'SELECT s.* FROM slides s JOIN posts p ON s.post_id = p.id WHERE s.id = $1 AND p.id = $2 AND p.project_id = $3',
+      [req.params.slideId, req.params.postId, req.params.id]
+    );
+
+    if (slide.rows.length === 0) {
+      return res.status(404).json({ error: 'Slide não encontrado' });
+    }
+
+    const prompt = slide.rows[0].text_headline || 'abstract background';
+    const imageUrl = await aiService.generateImage(prompt);
+
+    await query(
+      'UPDATE slides SET image_url = $1 WHERE id = $2',
+      [imageUrl, req.params.slideId]
+    );
+
+    res.json({ image_url: imageUrl });
   } catch (err) {
     next(err);
   }

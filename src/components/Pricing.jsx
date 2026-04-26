@@ -61,7 +61,7 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="section-padding bg-[#fafafa]">
+    <section id="precos" className="section-padding bg-[#fafafa]">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <span className="tag mb-4">Preços</span>

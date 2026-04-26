@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { ArrowLeft, Save, CheckCircle2, ChevronLeft, ChevronRight, Wand2, Image as ImageIcon, Send, Settings2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Save, CheckCircle2, ChevronLeft, ChevronRight, Wand2, Image as ImageIcon, Send, Settings2, Loader2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api';
 
 const mockPost = {
   topic: '5 Ferramentas de IA para não designers',
@@ -15,17 +17,125 @@ const mockPost = {
 };
 
 export default function PostEditor() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { activeProject } = useAuth();
+  
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [activeSlide, setActiveSlide] = useState(0);
-  const [slides, setSlides] = useState(mockPost.slides);
-  const [caption, setCaption] = useState(mockPost.caption);
+  const [post, setPost] = useState(null);
+  const [slides, setSlides] = useState([]);
+  const [caption, setCaption] = useState('');
+  const [brandColors, setBrandColors] = useState({ primary: '#4f46e5', secondary: '#9333ea', bg: '#ffffff' });
 
-  const currentSlide = slides[activeSlide];
+  useEffect(() => {
+    const fetchPost = async () => {
+      if (!id || !activeProject) return;
+      setLoading(true);
+      try {
+        const res = await api.get(`/projects/${activeProject.id}/posts/${id}`);
+        const p = res.post;
+        setPost(p);
+        setCaption(p.caption || '');
+        
+        // Map backend slide fields to editor fields
+        const mappedSlides = p.slides.map((s, idx) => ({
+          ...s,
+          type: idx === 0 ? 'hook' : idx === p.slides.length - 1 ? 'cta' : 'content',
+          headline: s.text_headline,
+          body: s.text_body,
+          cta: s.text_cta,
+          imageUrl: s.image_url // New field
+        }));
+        
+        setSlides(mappedSlides);
+        if (p.primary_color) {
+          setBrandColors({
+            primary: p.primary_color,
+            secondary: p.secondary_color || '#9333ea',
+            bg: '#ffffff'
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPost();
+  }, [id, activeProject]);
 
   const updateCurrentSlide = (field, value) => {
     const newSlides = [...slides];
     newSlides[activeSlide] = { ...newSlides[activeSlide], [field]: value };
     setSlides(newSlides);
   };
+
+  const handleSave = async (silent = false) => {
+    if (!activeProject || !id) return;
+    if (!silent) setSaving(true);
+    try {
+      // Map back to backend fields
+      const backendSlides = slides.map(s => ({
+        id: s.id,
+        text_headline: s.headline,
+        text_body: s.body,
+        text_cta: s.cta
+      }));
+
+      await api.put(`/projects/${activeProject.id}/posts/${id}`, {
+        caption,
+        slides: backendSlides
+      });
+      if (!silent) alert("Post salvo com sucesso!");
+    } catch (err) {
+      if (!silent) alert("Erro ao salvar: " + err.message);
+    } finally {
+      if (!silent) setSaving(false);
+    }
+  };
+
+  const handleGenerateImage = async () => {
+    if (!id || !activeProject || !currentSlide) return;
+    setIsGeneratingImage(true);
+    try {
+      const res = await api.post(`/projects/${activeProject.id}/posts/${id}/slides/${currentSlide.id}/generate-image`);
+      updateCurrentSlide('imageUrl', res.image_url);
+    } catch (err) {
+      alert("Erro ao gerar imagem: " + err.message);
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!activeProject || !id) return;
+    setSaving(true);
+    try {
+      await handleSave(true);
+      await api.put(`/projects/${activeProject.id}/posts/${id}/approve`);
+      alert("Post aprovado e pronto para agendamento!");
+      navigate('/app/calendar');
+    } catch (err) {
+      alert("Erro ao aprovar: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-20 text-zinc-400 bg-white rounded-3xl border border-zinc-200">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
+        <p>Carregando ferramentas do editor...</p>
+      </div>
+    );
+  }
+
+  const currentSlide = slides[activeSlide];
 
   return (
     <div className="flex flex-col h-[calc(100vh-2rem)] -mx-4 md:-mx-8 -my-8 bg-[#f4f4f5]">
@@ -39,18 +149,18 @@ export default function PostEditor() {
           <div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400" />
-              <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Aguardando Revisão</p>
+            <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">{post.status === 'pending' ? 'Aguardando Revisão' : post.status}</p>
             </div>
-            <h1 className="text-sm font-semibold text-zinc-900 truncate max-w-[200px] md:max-w-md">{mockPost.topic}</h1>
+            <h1 className="text-sm font-semibold text-zinc-900 truncate max-w-[200px] md:max-w-md">{post.ai_prompt || 'Post sem título'}</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-2 md:gap-3">
-          <button className="hidden md:flex btn-ghost py-2 px-4 shadow-none gap-2 text-sm">
-            <Save size={16} /> Salvar Rascunho
+          <button onClick={() => handleSave()} disabled={saving} className="hidden md:flex btn-ghost py-2 px-4 shadow-none gap-2 text-sm disabled:opacity-50">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Salvar Rascunho
           </button>
-          <button className="btn-primary bg-emerald-600 hover:bg-emerald-700 shadow-md py-2 px-6 gap-2 text-sm shadow-emerald-600/20">
-            <CheckCircle2 size={16} /> Aprovar e Agendar
+          <button onClick={handleApprove} disabled={saving} className="btn-primary bg-emerald-600 hover:bg-emerald-700 shadow-md py-2 px-6 gap-2 text-sm shadow-emerald-600/20 disabled:opacity-50">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />} Aprovar e Agendar
           </button>
         </div>
       </header>
@@ -95,21 +205,29 @@ export default function PostEditor() {
         <section className="flex-1 bg-zinc-100/50 flex flex-col items-center justify-between p-4 md:p-8 overflow-y-auto relative">
           
           {/* Main Slide Preview */}
-          <div className="relative w-full max-w-sm aspect-square bg-white shadow-2xl rounded-sm flex flex-col justify-center items-center p-8 transition-all duration-300 mx-auto"
+          <div className="relative w-full max-w-sm aspect-square bg-white shadow-2xl rounded-sm flex flex-col justify-center items-center p-8 transition-all duration-300 mx-auto overflow-hidden"
             style={{ 
-              backgroundColor: currentSlide.type === 'hook' ? mockPost.brandColors.primary : mockPost.brandColors.bg,
-              color: currentSlide.type === 'hook' ? '#ffffff' : '#18181b'
+              backgroundColor: currentSlide.type === 'hook' ? brandColors.primary : brandColors.bg,
+              color: currentSlide.type === 'hook' || currentSlide.imageUrl ? '#ffffff' : '#18181b'
             }}
           >
-            {/* Visual Header Mock */}
-            {currentSlide.type !== 'hook' && (
-              <div className="absolute top-6 left-6 flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full" style={{ backgroundColor: mockPost.brandColors.secondary }} />
-                <span className="text-[10px] font-bold tracking-widest uppercase opacity-40">Minha Marca</span>
+            {/* Background Image Layer */}
+            {currentSlide.imageUrl && (
+              <div className="absolute inset-0 z-0 transition-opacity duration-700 animate-fade-in">
+                <img src={currentSlide.imageUrl} className="w-full h-full object-cover" alt="AI Background" />
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
               </div>
             )}
 
-            <div className="w-full text-left">
+            {/* Visual Header Mock */}
+            {currentSlide.type !== 'hook' && (
+              <div className="absolute top-6 left-6 flex items-center gap-2 z-10">
+                <div className="w-6 h-6 rounded-full" style={{ backgroundColor: brandColors.secondary }} />
+                <span className="text-[10px] font-bold tracking-widest uppercase opacity-60">{post.brand_name || 'Minha Marca'}</span>
+              </div>
+            )}
+
+            <div className="w-full text-left relative z-10">
               <h1 className={`${currentSlide.type === 'hook' ? 'text-3xl lg:text-4xl' : 'text-2xl'} font-bold mb-4 leading-[1.2]`}>
                 {currentSlide.headline}
               </h1>
@@ -132,7 +250,7 @@ export default function PostEditor() {
             <div className="absolute bottom-6 flex gap-1.5">
               {slides.map((_, i) => (
                 <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === activeSlide ? 'opacity-90' : 'opacity-20'}`} 
-                  style={{ backgroundColor: currentSlide.type === 'hook' ? '#ffffff' : mockPost.brandColors.primary }}
+                  style={{ backgroundColor: currentSlide.type === 'hook' ? '#ffffff' : brandColors.primary }}
                 />
               ))}
             </div>
@@ -154,12 +272,14 @@ export default function PostEditor() {
                 className={`snap-start shrink-0 relative w-20 h-24 rounded-lg flex flex-col text-left overflow-hidden border-2 transition-all p-2
                   ${activeSlide === i ? 'border-indigo-500 scale-105 shadow-md z-10' : 'border-transparent hover:border-zinc-300 opacity-70'}
                 `}
-                style={{ backgroundColor: s.type === 'hook' ? mockPost.brandColors.primary : mockPost.brandColors.bg }}
+                style={{ backgroundColor: s.type === 'hook' ? brandColors.primary : brandColors.bg }}
               >
-                <span className={`text-[8px] font-bold leading-tight line-clamp-3 ${s.type === 'hook' ? 'text-white' : 'text-zinc-800'}`}>
+                {s.imageUrl && <img src={s.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />}
+                <div className="absolute inset-0 bg-black/10" />
+                <span className={`relative text-[8px] font-bold leading-tight line-clamp-3 ${s.type === 'hook' || s.imageUrl ? 'text-white' : 'text-zinc-800'}`}>
                   {s.headline}
                 </span>
-                <span className="absolute bottom-1 right-1.5 text-[8px] font-mono font-bold opacity-30" style={{ color: s.type === 'hook' ? '#ffffff' : '#000000' }}>
+                <span className="absolute bottom-1 right-1.5 text-[8px] font-mono font-bold opacity-30 relative" style={{ color: s.type === 'hook' || s.imageUrl ? '#ffffff' : '#000000' }}>
                   {i + 1}
                 </span>
               </button>
@@ -222,12 +342,21 @@ export default function PostEditor() {
                <label className="block text-xs font-semibold text-zinc-500 mb-2 uppercase tracking-wide">Fundo Visual</label>
                <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-center group cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-all">
                   <div className="w-10 h-10 rounded-full bg-white border border-zinc-200 flex items-center justify-center mx-auto mb-3 shadow-sm group-hover:scale-110 transition-transform">
-                    <ImageIcon size={18} className="text-zinc-400 group-hover:text-indigo-600" />
+                    {currentSlide.imageUrl ? (
+                       <img src={currentSlide.imageUrl} className="w-full h-full rounded-full object-cover" alt="" />
+                    ) : (
+                      <ImageIcon size={18} className="text-zinc-400 group-hover:text-indigo-600" />
+                    )}
                   </div>
-                  <p className="text-sm font-semibold text-zinc-800">Este slide usa fundo liso</p>
+                  <p className="text-sm font-semibold text-zinc-800">{currentSlide.imageUrl ? 'IA Gerou este fundo' : 'Este slide usa fundo liso'}</p>
                   <p className="text-[11px] text-zinc-500 mt-1 mb-3">A IA do DALL-E pode gerar uma imagem abstrata baseada neste texto para preencher o fundo.</p>
-                  <button className="w-full btn-ghost py-1.5 text-xs font-bold gap-2 shadow-none border-zinc-300 bg-white">
-                    <Wand2 size={12} className="text-indigo-600" /> Gerar Fundo com IA
+                  <button 
+                    onClick={handleGenerateImage}
+                    disabled={isGeneratingImage}
+                    className="w-full btn-ghost py-1.5 text-xs font-bold gap-2 shadow-none border-zinc-300 bg-white disabled:opacity-50"
+                  >
+                    {isGeneratingImage ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} className="text-indigo-600" />} 
+                    {currentSlide.imageUrl ? 'Gerar Outro Fundo' : 'Gerar Fundo com IA'}
                   </button>
                </div>
             </div>

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Globe, TrendingUp, Users, Clock, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Globe, TrendingUp, Users, Clock, AlertCircle, Loader2, CheckCircle2, ChevronRight } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api';
+import { NavLink } from 'react-router-dom';
 
 // Mock data for the chart
 const data = [
@@ -14,17 +17,56 @@ const data = [
 ];
 
 export default function Overview() {
+  const { activeProject } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
+  const [status, setStatus] = useState({ connected: false });
+  const [upcomingPosts, setUpcomingPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleConnect = () => {
-    setIsConnecting(true);
-    // Simula o tempo do OAuth Popup da Meta
-    setTimeout(() => {
-      setIsConnecting(false);
-      setIsConnected(true);
-    }, 2000);
+  const fetchStatus = async () => {
+    if (!activeProject) return;
+    try {
+      const res = await api.get(`/projects/${activeProject.id}/instagram/status`);
+      setStatus(res);
+      
+      const postsRes = await api.get(`/projects/${activeProject.id}/posts?status=scheduled&limit=3`);
+      setUpcomingPosts(postsRes.posts);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchStatus();
+  }, [activeProject]);
+
+  const handleConnect = async () => {
+    if (!activeProject) return;
+    setIsConnecting(true);
+    try {
+      const res = await api.post(`/projects/${activeProject.id}/instagram/connect`);
+      if (res.auth_url) {
+        window.location.href = res.auth_url;
+      }
+    } catch (err) {
+      alert("Erro ao conectar: " + err.message);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  if (loading && !status.connected) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500 mb-4" />
+        <p>Sincronizando seu dashboard...</p>
+      </div>
+    );
+  }
+
+  const isConnected = status.connected;
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -36,30 +78,36 @@ export default function Overview() {
 
       {/* Integration Alert */}
       {!isConnected ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 transition-all">
-          <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={20} />
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start gap-4 transition-all">
+          <div className="w-12 h-12 rounded-2xl bg-amber-100 flex items-center justify-center shrink-0 border border-amber-200/50">
+            <Globe className="text-amber-600" size={24} />
+          </div>
           <div>
-            <h3 className="text-sm font-semibold text-amber-800">Conecte seu Instagram</h3>
-            <p className="text-sm text-amber-700 mt-1">Para o AutoFeed funcionar e coletarmos métricas reais, você precisa conectar sua conta comercial.</p>
+            <h3 className="text-base font-bold text-amber-900">Conecte seu Instagram comercial</h3>
+            <p className="text-sm text-amber-800 mt-1 max-w-2xl leading-relaxed">
+              O Posta.ai precisa da autorização oficial da Meta para agendar seus carrosséis e ler os resultados. Sem isso, os ganchos e artes não podem ser publicados automaticamente.
+            </p>
             <button 
               onClick={handleConnect}
               disabled={isConnecting}
-              className="mt-3 text-sm font-medium text-amber-900 bg-amber-100 hover:bg-amber-200 px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 shadow-sm disabled:opacity-75 disabled:cursor-not-allowed"
+              className="mt-4 text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 px-6 py-2.5 rounded-xl transition-all inline-flex items-center gap-2 shadow-lg shadow-amber-600/20 disabled:opacity-75 disabled:cursor-not-allowed"
             >
               {isConnecting ? (
-                <><Loader2 size={16} className="animate-spin" /> Conectando com a Meta...</>
+                <><Loader2 size={16} className="animate-spin" /> Abrindo Central de Contas...</>
               ) : (
-                <><Globe size={16} /> Conectar Conta Meta</>
+                <><Globe size={16} /> Conectar com a Meta</>
               )}
             </button>
           </div>
         </div>
       ) : (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3 transition-all animate-fade-in">
-          <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={20} />
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex items-start gap-4 transition-all animate-fade-in">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0 border border-emerald-200/50">
+            <CheckCircle2 className="text-emerald-600" size={24} />
+          </div>
           <div>
-            <h3 className="text-sm font-semibold text-emerald-800">Instagram Conectado!</h3>
-            <p className="text-sm text-emerald-700 mt-1">Sua conta <strong>@minhamarca</strong> foi vinculada com sucesso. O motor de automação já pode operar.</p>
+            <h3 className="text-base font-bold text-emerald-900">Instagram Conectado: @{status.username}</h3>
+            <p className="text-sm text-emerald-800 mt-1">Sua conta está saudável e pronta para receber postagens. O motor de IA está sincronizado com seu canal oficial.</p>
           </div>
         </div>
       )}
@@ -125,31 +173,41 @@ export default function Overview() {
 
       {/* Próximos Posts Preview */}
       <div>
-        <h2 className="text-lg font-semibold text-zinc-900 mb-4">Próximos Posts (AutoFeed)</h2>
-        <div className="grid md:grid-cols-3 gap-4">
-          {[
-            { tag: 'IA', title: '5 Ferramentas de IA para não designers', time: 'Hoje, 18:00' },
-            { tag: 'Estratégia', title: 'Como planejar seu mês em 1h', time: 'Amanhã, 12:00' },
-            { tag: 'Vendas', title: 'O maior erro ao divulgar seu serviço', time: 'Sex, 09:00' },
-          ].map((post, i) => (
-            <div key={i} className="bg-white border border-zinc-200 rounded-xl p-4 flex flex-col hover:border-zinc-300 transition-colors cursor-pointer">
-              <div className="flex justify-between items-start mb-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
-                  {post.tag}
-                </span>
-                <span className="text-xs font-mono text-zinc-400">{post.time}</span>
-              </div>
-              <p className="text-sm font-semibold text-zinc-800 line-clamp-2 leading-snug">
-                {post.title}
-              </p>
-              <div className="mt-auto pt-4 flex gap-1">
-                {[1,2,3,4,5].map(s => (
-                  <div key={s} className="h-10 flex-1 bg-zinc-100 rounded-md border border-zinc-200" />
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="flex justify-between items-end mb-4">
+          <h2 className="text-lg font-semibold text-zinc-900">Próximos Posts (AutoFeed)</h2>
+          <NavLink to="/app/calendar" className="text-sm font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+            Ver calendário completo <ChevronRight size={14}/>
+          </NavLink>
         </div>
+        
+        {upcomingPosts.length === 0 ? (
+          <div className="bg-white border border-zinc-200 rounded-2xl p-10 text-center flex flex-col items-center">
+             <Clock className="text-zinc-300 mb-3" size={32} />
+             <p className="text-sm text-zinc-500">Nenhum post agendado para o AutoFeed.</p>
+             <NavLink to="/app/calendar" className="text-sm font-bold text-indigo-600 mt-2">Agendar agora</NavLink>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-4">
+            {upcomingPosts.map((post) => (
+              <NavLink to={`/app/editor/${post.id}`} key={post.id} className="bg-white border border-zinc-200 rounded-xl p-4 flex flex-col hover:border-indigo-200 hover:shadow-md transition-all cursor-pointer group">
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                    {post.ai_prompt?.split(' ')[0] || 'POST'}
+                  </span>
+                  <span className="text-xs font-mono text-zinc-400">{new Date(post.scheduled_for).toLocaleDateString()}</span>
+                </div>
+                <p className="text-sm font-semibold text-zinc-800 line-clamp-2 leading-snug group-hover:text-indigo-700 transition-colors">
+                  {post.ai_prompt || 'Post Gerado'}
+                </p>
+                <div className="mt-auto pt-4 flex gap-1.5">
+                  {post.slides?.slice(0, 5).map((s, idx) => (
+                    <div key={idx} className={`h-8 flex-1 rounded-md border ${idx === 0 ? 'bg-indigo-500 border-indigo-600' : 'bg-zinc-50 border-zinc-200'}`} />
+                  ))}
+                </div>
+              </NavLink>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,32 +1,30 @@
 import React from 'react';
-import { Hexagon, Triangle, Circle, Square, Box } from 'lucide-react';
 
 const logos = [
-  { name: 'StartSe', icon: Square, color: 'text-orange-500' },
-  { name: 'RD Station', icon: Hexagon, color: 'text-cyan-600' },
-  { name: 'Rock Content', icon: Box, color: 'text-rose-500' },
-  { name: 'Sympla', icon: Triangle, color: 'text-blue-500' },
-  { name: 'VTEX', icon: Circle, color: 'text-pink-600' }
+  { name: 'RD Station', icon: 'RD' },
+  { name: 'Rock Content', icon: 'RC' },
+  { name: 'StartSe', icon: 'SS' },
+  { name: 'Syrup', icon: 'SY' },
+  { name: 'VTEX', icon: 'VT' },
 ];
 
 export default function LogoBar() {
   return (
-    <div className="bg-white border-y border-zinc-100">
-      <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-center gap-6 md:gap-14">
-        <span className="text-[11px] font-medium tracking-wider uppercase text-zinc-400 shrink-0">
-          Empresas que confiam
-        </span>
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-          {logos.map(logo => (
-            <div key={logo.name} className="flex items-center gap-2.5 text-zinc-800 hover:opacity-80 transition-opacity select-none group">
-              <logo.icon size={20} className={`shrink-0 ${logo.color}`} strokeWidth={3} />
-              <span className="text-[17px] font-extrabold tracking-tight">
-                {logo.name}
-              </span>
-            </div>
-          ))}
+    <section className="py-12 border-y border-gray-100 bg-white">
+      <div className="section-container">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-16 opacity-50 grayscale">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest max-w-[140px] text-center md:text-left leading-tight">
+            CONFIADO POR MAKES QUE CRIAM CONTEÚDO TODOS OS DIAS
+          </p>
+          <div className="flex flex-wrap justify-center gap-12 md:gap-16 items-center flex-1">
+            {logos.map(logo => (
+              <div key={logo.name} className="flex items-center gap-2 group transition-all hover:grayscale-0 hover:opacity-100">
+                <span className="font-extrabold text-zinc-900 text-xl tracking-tighter">{logo.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

@@ -5,7 +5,7 @@ export default function DemoVisual() {
   return (
     <section className="py-24 relative overflow-hidden">
       <div className="text-center max-w-3xl mx-auto mb-16 px-6 relative z-10">
-        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Veja o Postlee.ai em ação</h2>
+        <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Veja o Posta.ai em ação</h2>
         <p className="text-slate-400 text-lg">A interface mais limpa e intuitiva que você já usou. Desenhada para criar e não para confundir.</p>
       </div>
 
@@ -17,7 +17,7 @@ export default function DemoVisual() {
              <div className="w-3 h-3 rounded-full bg-slate-600"></div>
              <div className="w-3 h-3 rounded-full bg-slate-600"></div>
              <div className="w-3 h-3 rounded-full bg-slate-600"></div>
-             <div className="ml-auto text-xs text-slate-500 font-medium">app.postlee.ai</div>
+             <div className="ml-auto text-xs text-slate-500 font-medium">app.Posta.ai</div>
           </div>
 
           <div className="relative rounded-2xl overflow-hidden aspect-[16/10] md:aspect-[16/8] bg-dark-900 border border-white/5">

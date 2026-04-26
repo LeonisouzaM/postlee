@@ -47,6 +47,8 @@ const MIGRATIONS = [
     font_title VARCHAR(100) DEFAULT 'Inter',
     font_body VARCHAR(100) DEFAULT 'Inter',
     logo_url TEXT,
+    image_style VARCHAR(50) DEFAULT 'jornalístico',
+    design_style VARCHAR(50) DEFAULT 'moderno',
     style_notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

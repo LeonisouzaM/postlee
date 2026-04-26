@@ -1,139 +1,188 @@
-/**
- * AI Service — Camada de abstração para providers de IA
- * 
- * Suporta: openai, gemini, anthropic, mock
- * Configure AI_PROVIDER e AI_API_KEY no .env
- */
 const axios = require('axios');
 
+/**
+ * AI Service - Handles content generation via Groq/OpenAI
+ */
 class AIService {
   constructor() {
-    this.provider = process.env.AI_PROVIDER || 'mock';
-    this.apiKey = process.env.AI_API_KEY;
-    this.model = process.env.AI_MODEL || 'gpt-4o';
+    this.apiKey = process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+    this.provider = process.env.AI_PROVIDER || 'gemini';
+    this.model = process.env.AI_MODEL || 'gemini-1.5-flash';
   }
 
   /**
-   * Gera a estrutura completa de um carrossel
+   * Gera um carrossel completo de alta performance
    */
-  async generateCarousel({ topic, niche, toneOfVoice, brandName, numSlides = 7 }) {
-    const systemPrompt = `Você é um estrategista de conteúdo para Instagram especializado em criar carrosséis virais.
-Marca: ${brandName || 'marca genérica'}
-Nicho: ${niche || 'negócios'}
-Tom de voz: ${toneOfVoice || 'profissional'}
+  async generateCarousel({ topic, niche, audience, toneOfVoice, brandName, brandDescription, numSlides, brandConfig }) {
+    const brandContext = brandConfig ? `
+PERFIL DA MARCA:
+- Nicho: ${brandConfig.nicho || niche}
+- O que vende: ${brandConfig.o_que_vende}
+- Cliente ideal: ${brandConfig.cliente_ideal}
+- Maior dor: ${brandConfig.dor_do_cliente}
+- Tom de voz: ${brandConfig.tom_de_voz}
+- Palavras Proibidas: ${brandConfig.palavras_proibidas?.join(', ')}
+- Objetivo: ${brandConfig.objetivo_principal}
+- Cor da marca: ${brandConfig.cor_da_marca}
+` : `Nicho: ${niche}, Tom: ${toneOfVoice}, Público: ${audience}`;
 
-REGRAS:
-- Slide 1 é sempre um gancho forte (hook) que faz o usuário parar de scrollar
-- Slides intermediários entregam valor real, com dados ou dicas práticas
-- Último slide é sempre um CTA claro
-- Use linguagem direta e com autoridade
-- Evite jargões genéricos como "transforme sua vida"`;
+    const systemPrompt = `Você é um estrategista de conteúdo sênior especializado em carrosséis de alto engajamento para Instagram e LinkedIn.
+Você trabalhou com os maiores criadores de conteúdo do Brasil e sabe exatamente o que faz um carrossel ser salvo, compartilhado e gerar comentários.
 
-    const userPrompt = `Crie um carrossel de ${numSlides} slides sobre: "${topic}"
+### SEU PADRÃO DE QUALIDADE OBRIGATÓRIO (NUNCA SEJA GENÉRICO)
+- RUIM (Óbvio): "Não pesquisar o mercado pode levar a preços altos"
+- BOM (Específico): "No nicho ${niche || 'selecionado'}, 9 em cada 10 pessoas perdem 40% de lucro por causa de X — e elas nem sabem disso."
 
-Responda SOMENTE em JSON válido, sem markdown:
+REGRA DE DESIGN POR NICHO:
+- IMOBILIÁRIO/FINANÇAS/JURÍDICO: fundo #0d1117, texto #e6edf3, acento ${brandConfig?.cor_da_marca || '#c9a96e'}
+- SAÚDE/FITNESS: fundo #f0faf5, texto #1a3c2e, acento ${brandConfig?.cor_da_marca || '#2d8a5e'}
+- MARKETING/VENDAS: fundo #0a0a0a, texto #ffffff, acento ${brandConfig?.cor_da_marca || '#f5c842'}
+- EDUCAÇÃO: fundo #fffbeb, texto #451a03, acento ${brandConfig?.cor_da_marca || '#d97706'}
+- TECH/SAAS: fundo #0f0f23, texto #e2e8f0, acento ${brandConfig?.cor_da_marca || '#7c3aed'}
+- MODA/BELEZA: fundo #faf7f2, texto #1a1a1a, acento ${brandConfig?.cor_da_marca || '#c9a96e'}
+
+Retorne APENAS o JSON no formato solicitado.`;
+
+    const userPrompt = `
+${brandContext}
+
+PEDIDO DO USUÁRIO:
+"${topic}"
+
+PROCESSO OBRIGATÓRIO — execute internamente:
+1. ENRIQUECIMENTO: Identifique um dado, erro comum ou medo oculto deste público sobre o tema.
+2. ÂNGULO: Escolha entre Revelação, Desmistificação, Dado Surpreendente ou Passo a Passo Contraintuitivo.
+3. GERAÇÃO: Crie ${numSlides || 7} slides.
+
+RETORNE APENAS O JSON ABAIXO, sem texto antes ou depois:
+
 {
-  "title": "Título geral do carrossel",
-  "slides": [
-    { "headline": "Texto principal do slide (máx 8 palavras)", "body": "Texto de apoio (máx 30 palavras)", "cta": "Chamada para ação se houver" }
-  ],
-  "caption": "Legenda completa para o post (inclua emojis e quebras de linha)",
-  "hashtags": ["#hashtag1", "#hashtag2", "#hashtag3"]
-}`;
+  "carrossel": {
+    "titulo_interno": "string",
+    "angulo_escolhido": "string",
+    "design": {
+      "cor_fundo": "#hex",
+      "cor_texto": "#hex",
+      "cor_acento": "#hex",
+      "estilo": "string"
+    },
+    "legenda_instagram": "string (máx 150 chars)",
+    "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"],
+    "slides": [
+      {
+        "numero": 1,
+        "tipo": "capa",
+        "titulo": "string (gancho brutal, máx 8 palavras)",
+        "texto_apoio": null,
+        "destaque_visual": null,
+        "nota_design": "Instrução cirúrgica de layout"
+      },
+      {
+        "numero": 2,
+        "tipo": "conteudo",
+        "titulo": "string (máx 6 palavras)",
+        "texto_apoio": "string (diferente do título, com dado ou exemplo)",
+        "destaque_visual": "string (número ou dado p/ destaque)",
+        "nota_design": "Instrução cirúrgica de layout"
+      }
+    ]
+  }
+}
+
+ATENÇÃO: Capa não pode começar com "Descubra", "Veja" ou "Conheça". Seja disruptivo.`;
 
     const response = await this._chat(systemPrompt, userPrompt);
 
     try {
-      // Tenta parsear o JSON da resposta
-      const cleaned = response.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+      const firstBrace = response.indexOf('{');
+      const lastBrace = response.lastIndexOf('}');
+      if (firstBrace === -1 || lastBrace === -1) throw new Error('JSON não encontrado');
+      
+      let cleaned = response.substring(firstBrace, lastBrace + 1);
+      
+      // Limpeza de quebras de linha dentro de strings
+      cleaned = cleaned.replace(/"([^"]*)"/g, (match) => {
+        return match.replace(/\n/g, '\\n');
+      });
+
       return JSON.parse(cleaned);
     } catch (err) {
-      console.error('❌ Erro ao parsear resposta da IA:', err.message);
-      console.error('Resposta bruta:', response.substring(0, 500));
+      console.error('❌ Erro AI:', err.message);
+      console.error('Texto bruto:', response.substring(0, 500));
       throw new Error('A IA retornou uma resposta inválida. Tente novamente.');
     }
   }
 
-  /**
-   * Gera carrossel a partir de uma URL de notícia
-   */
-  async generateFromNews({ url, niche, toneOfVoice, brandName }) {
-    const systemPrompt = `Você é um especialista em transformar notícias em conteúdo educativo para Instagram.
-Marca: ${brandName || 'marca'}
-Nicho: ${niche || 'negócios'}
-Tom: ${toneOfVoice || 'profissional'}`;
-
-    const userPrompt = `Transforme esta notícia em um carrossel de 7 slides para Instagram:
-URL: ${url}
-
-Extraia os pontos principais da notícia e crie um carrossel educativo que:
-1. Gere curiosidade no slide 1
-2. Explique o que aconteceu nos slides centrais
-3. Dê a opinião/insight da marca no final
-4. Termine com CTA
-
-Responda SOMENTE em JSON válido:
-{
-  "title": "...",
-  "slides": [{ "headline": "...", "body": "...", "cta": "" }],
-  "caption": "...",
-  "hashtags": ["..."]
-}`;
-
-    const response = await this._chat(systemPrompt, userPrompt);
-
-    try {
-      const cleaned = response.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-      return JSON.parse(cleaned);
-    } catch (err) {
-      throw new Error('Erro ao processar notícia com IA');
-    }
-  }
-
-  /**
-   * Regenera um slide específico
-   */
-  async regenerateSlide({ currentHeadline, currentBody, context, toneOfVoice }) {
-    const prompt = `Reescreva este slide de carrossel do Instagram com um ângulo diferente:
-Headline atual: "${currentHeadline}"
-Body atual: "${currentBody}"
-Contexto do carrossel: "${context}"
-Tom: ${toneOfVoice}
-
-Responda em JSON: { "headline": "...", "body": "...", "cta": "" }`;
-
-    const response = await this._chat('Você é um copywriter de Instagram.', prompt);
-    const cleaned = response.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-    return JSON.parse(cleaned);
-  }
-
-  /**
-   * Gera legenda alternativa
-   */
-  async generateCaption({ topic, toneOfVoice, platform = 'instagram' }) {
-    const prompt = `Gere uma legenda profissional para um post de ${platform} sobre: "${topic}"
-Tom: ${toneOfVoice}
-Inclua emojis relevantes e 5 hashtags.
-Responda apenas com o texto da legenda.`;
-
-    return this._chat('Você é um social media manager.', prompt);
-  }
-
-  // ── Provider Abstraction ─────────────────────────────
   async _chat(systemPrompt, userPrompt) {
-    switch (this.provider) {
-      case 'openai':
-        return this._openai(systemPrompt, userPrompt);
-      case 'gemini':
-        return this._gemini(systemPrompt, userPrompt);
-      case 'anthropic':
-        return this._anthropic(systemPrompt, userPrompt);
-      default:
-        return this._mock(systemPrompt, userPrompt);
+    if (this.provider === 'gemini') return this._gemini(systemPrompt, userPrompt);
+    if (this.provider === 'groq') return this._groq(systemPrompt, userPrompt);
+    if (this.provider === 'openai') return this._openai(systemPrompt, userPrompt);
+    return this._mock(systemPrompt, userPrompt);
+  }
+
+  async _gemini(systemPrompt, userPrompt) {
+    try {
+      console.log('🤖 [GEMINI] Enviando requisição para Google (v1beta)...');
+      // v1beta é obrigatório para system_instruction e response_mime_type
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+      
+      const payload = {
+        contents: [{ 
+          parts: [{ text: userPrompt }] 
+        }],
+        system_instruction: { 
+          parts: [{ text: systemPrompt }] 
+        },
+        generationConfig: {
+          temperature: 0.2,
+          response_mime_type: "application/json"
+        }
+      };
+
+      const response = await axios.post(url, payload);
+      
+      if (!response.data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        throw new Error('Resposta vazia do Gemini');
+      }
+
+      return response.data.candidates[0].content.parts[0].text;
+    } catch (err) {
+      if (err.response?.data) {
+        console.error('❌ [GEMINI API ERROR DETAIL]:', JSON.stringify(err.response.data, null, 2));
+      }
+      // Captura o erro detalhado para o usuário
+      const apiMessage = err.response?.data?.error?.message || err.message;
+      throw new Error(`Erro Gemini (${err.response?.status || '500'}): ${apiMessage}`);
     }
   }
 
-  // ── OpenAI ───────────────────────────────────────────
+  async _groq(systemPrompt, userPrompt) {
+    try {
+      const response = await axios.post(
+        'https://api.groq.com/openai/v1/chat/completions',
+        {
+          model: this.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+          temperature: 0.2,
+          max_tokens: 4096,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      return response.data.choices[0].message.content;
+    } catch (err) {
+      console.error('❌ [GROQ ERROR]', err.response?.data || err.message);
+      throw err;
+    }
+  }
+
   async _openai(systemPrompt, userPrompt) {
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
@@ -143,8 +192,7 @@ Responda apenas com o texto da legenda.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 2000,
+        temperature: 0.2,
       },
       {
         headers: {
@@ -156,59 +204,8 @@ Responda apenas com o texto da legenda.`;
     return response.data.choices[0].message.content;
   }
 
-  // ── Google Gemini ────────────────────────────────────
-  async _gemini(systemPrompt, userPrompt) {
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`,
-      {
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 2000 },
-      }
-    );
-    return response.data.candidates[0].content.parts[0].text;
-  }
-
-  // ── Anthropic Claude ─────────────────────────────────
-  async _anthropic(systemPrompt, userPrompt) {
-    const response = await axios.post(
-      'https://api.anthropic.com/v1/messages',
-      {
-        model: this.model || 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      },
-      {
-        headers: {
-          'x-api-key': this.apiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    return response.data.content[0].text;
-  }
-
-  // ── Mock (para desenvolvimento sem API) ──────────────
-  async _mock(systemPrompt, userPrompt) {
-    console.log('🤖 [MOCK AI] Gerando conteúdo simulado...');
-    await new Promise(r => setTimeout(r, 500)); // Simula latência
-
-    return JSON.stringify({
-      title: 'Carrossel gerado por IA (mock)',
-      slides: [
-        { headline: '5 Erros que Destroem seu Alcance', body: 'A maioria dos perfis comerciais comete esses erros sem perceber.', cta: '' },
-        { headline: 'Erro #1: Postar sem Estratégia', body: 'Publicar conteúdo aleatório confunde o algoritmo e reduz sua entrega.', cta: '' },
-        { headline: 'Erro #2: Ignorar os Horários', body: 'Cada nicho tem seu horário de pico. Postar fora dele é jogar alcance fora.', cta: '' },
-        { headline: 'Erro #3: Visuais Inconsistentes', body: 'Feeds sem identidade visual passam amadorismo e perdem seguidores.', cta: '' },
-        { headline: 'Erro #4: Legendas Genéricas', body: 'Legendas sem gancho não geram salvamentos, e salvamentos dominam o algoritmo.', cta: '' },
-        { headline: 'Erro #5: Não usar Carrosséis', body: 'Carrosséis têm 3x mais alcance que posts estáticos.', cta: '' },
-        { headline: 'Quer resolver tudo isso?', body: 'O Postlee automatiza seu conteúdo com IA + seu branding.', cta: 'Link na bio → Teste grátis' },
-      ],
-      caption: '🚨 Você está cometendo esses erros no seu Instagram?\n\nA maioria dos perfis perde alcance por causa de erros simples que podem ser corrigidos hoje.\n\nSalve este post e compartilhe com alguém que precisa ver! 💡\n\n#marketingdigital #instagram #socialmedia #empreendedorismo #postlee',
-      hashtags: ['#marketingdigital', '#instagram', '#socialmedia', '#empreendedorismo', '#postlee'],
-    });
+  async _mock() {
+    return JSON.stringify({ carrossel: { slides: [], design: {}, legenda_instagram: "", hashtags: [] } });
   }
 }
 

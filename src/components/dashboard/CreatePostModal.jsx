@@ -1,20 +1,40 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Link2, MessageSquare } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { api } from '../../api';
+import { useNavigate } from 'react-router-dom';
 
 export default function CreatePostModal({ isOpen, onClose }) {
+  const navigate = useNavigate();
+  const { activeProject } = useAuth();
   const [tab, setTab] = useState('ia'); // 'ia' ou 'url'
   const [loading, setLoading] = useState(false);
+  const [inputVal, setInputVal] = useState('');
+  const [numSlides, setNumSlides] = useState('7');
 
   if (!isOpen) return null;
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (!activeProject || !inputVal) return;
     setLoading(true);
-    // Simula tempo de geração da IA
-    setTimeout(() => {
+    console.log('🚀 [CREATE] Enviando para geração:', { tab, inputVal, numSlides, projectId: activeProject.id });
+    try {
+      let endpoint = tab === 'ia' 
+        ? `/projects/${activeProject.id}/posts/generate` 
+        : `/projects/${activeProject.id}/posts/from-news`;
+      
+      let payload = tab === 'ia' 
+        ? { topic: inputVal, num_slides: parseInt(numSlides) } 
+        : { url: inputVal };
+
+      const res = await api.post(endpoint, payload);
+      onClose();
+      navigate(`/app/editor/${res.post.id}`);
+    } catch (err) {
+      alert("Erro ao gerar post: " + err.message);
+    } finally {
       setLoading(false);
-      onClose(); // Fecha o modal após "criar"
-      // TODO: Redirecionar para o editor do carrossel quando estiver pronto
-    }, 2500);
+    }
   };
 
   return (
@@ -72,6 +92,8 @@ export default function CreatePostModal({ isOpen, onClose }) {
                 <textarea 
                   rows="3" 
                   autoFocus
+                  value={inputVal}
+                  onChange={e => setInputVal(e.target.value)}
                   placeholder="Ex: 5 erros fatais ao criar campanhas no Google Ads ou O que muda com a nova lei tributária..."
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 resize-none transition-all"
                 />
@@ -85,6 +107,8 @@ export default function CreatePostModal({ isOpen, onClose }) {
                 <input 
                   type="url" 
                   autoFocus
+                  value={inputVal}
+                  onChange={e => setInputVal(e.target.value)}
                   placeholder="https://exame.com/noticia/..."
                   className="w-full bg-zinc-50 border border-zinc-200 rounded-xl pl-10 pr-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                 />
@@ -95,7 +119,11 @@ export default function CreatePostModal({ isOpen, onClose }) {
 
           <div>
             <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Tamanho desejado</label>
-            <select className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all">
+            <select 
+              value={numSlides}
+              onChange={e => setNumSlides(e.target.value)}
+              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+            >
               <option value="5">Curto (5 Slides) - Ideal para dicas rápidas</option>
               <option value="7">Médio (7 Slides) - Padrão de engajamento</option>
               <option value="10">Longo (10 Slides) - Alta densidade técnica</option>

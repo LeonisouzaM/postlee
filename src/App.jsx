@@ -21,12 +21,14 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* Protected Dashboard Area (Mock protection for now via route structure) */}
+        {/* Protected Dashboard Area */}
         <Route path="/app" element={<DashboardLayout />}>
           <Route index element={<Overview />} />
           <Route path="calendar" element={<CalendarView />} />
           <Route path="editor" element={<PostEditor />} />
+          <Route path="editor/:id" element={<PostEditor />} />
           <Route path="brand" element={<BrandDna />} />
+          <Route path="brand/:id" element={<BrandDna />} />
           <Route path="settings" element={<SettingsView />} />
         </Route>
 

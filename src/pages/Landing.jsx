@@ -4,24 +4,26 @@ import Hero from '../components/Hero';
 import LogoBar from '../components/LogoBar';
 import Solution from '../components/Solution';
 import Steps from '../components/Steps';
-import Differential from '../components/Differential';
+import TemplateShowcase from '../components/TemplateShowcase';
+import InteractiveDemo from '../components/InteractiveDemo';
+import Testimonials from '../components/Testimonials';
 import Pricing from '../components/Pricing';
-import Faq from '../components/Faq';
 import Cta from '../components/Cta';
 import Footer from '../components/Footer';
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-[#fafafa] font-sans overflow-x-hidden">
+    <div className="min-h-screen bg-white font-sans overflow-x-hidden selection:bg-indigo-100 selection:text-[#5c54ed]">
       <Navbar />
       <main>
         <Hero />
         <LogoBar />
         <Solution />
         <Steps />
-        <Differential />
+        <TemplateShowcase />
+        <InteractiveDemo />
+        <Testimonials />
         <Pricing />
-        <Faq />
         <Cta />
       </main>
       <Footer />

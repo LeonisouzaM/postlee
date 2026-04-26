@@ -1,14 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
-  const handleRegister = (e) => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleRegister = async (e) => {
     e.preventDefault();
-    // Simula criação e joga pro app ou onboarding
-    navigate('/app');
+    setError('');
+    setIsLoading(true);
+    
+    try {
+      await register(name, email, password);
+      navigate('/app');
+    } catch (err) {
+      setError(err.message || 'Erro ao criar conta');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -21,7 +38,7 @@ export default function Register() {
             <span className="text-white font-bold text-sm">P</span>
           </div>
           <span className="font-semibold tracking-tight text-zinc-900 text-lg">
-            Postlee<span className="text-indigo-500 font-normal">.ai</span>
+            Posta<span className="text-indigo-500 font-normal">.ai</span>
           </span>
         </NavLink>
         <NavLink to="/" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 flex items-center gap-1 transition-colors">
@@ -81,14 +98,24 @@ export default function Register() {
             <div className="flex-grow border-t border-zinc-200"></div>
           </div>
 
+          {error && (
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-red-700 text-sm">
+              <AlertCircle size={18} className="shrink-0 mt-0.5" />
+              <p>{error}</p>
+            </div>
+          )}
+
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-zinc-700 mb-1.5">Nome Completo</label>
               <input 
                 type="text" 
                 required
+                value={name}
+                onChange={e => setName(e.target.value)}
+                disabled={isLoading}
                 placeholder="Como devemos te chamar?"
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
               />
             </div>
 
@@ -97,8 +124,11 @@ export default function Register() {
               <input 
                 type="email" 
                 required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                disabled={isLoading}
                 placeholder="seu@negocio.com"
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
               />
             </div>
             
@@ -107,13 +137,18 @@ export default function Register() {
               <input 
                 type="password" 
                 required
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                disabled={isLoading}
                 placeholder="Mínimo 8 caracteres"
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 text-sm text-zinc-800 outline-none focus:bg-white focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition-all disabled:opacity-50"
               />
             </div>
 
-            <button type="submit" className="w-full btn-primary py-3.5 mt-2 shadow-md shadow-indigo-600/10 text-sm group">
-              Criar Conta e Continuar <ArrowRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
+            <button type="submit" disabled={isLoading} className="w-full btn-primary py-3.5 mt-2 shadow-md shadow-indigo-600/10 text-sm group disabled:opacity-75">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (
+                <>Criar Conta e Continuar <ArrowRight className="w-4 h-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" /></>
+              )}
             </button>
             <p className="text-center text-[11px] text-zinc-400 mt-3">
               Ao criar conta, você concorda com nossos Termos de Uso e Política de Privacidade.

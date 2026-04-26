@@ -1,51 +1,84 @@
 import React from 'react';
+import { Star } from 'lucide-react';
 
-const testimonials = [
-  { quote: 'Antes eu perdia meus domingos planejando posts. Agora aprovo a semana inteira em 10 minutos.', name: 'Amanda S.', role: 'Dona de e-commerce', initials: 'AS', bg: 'bg-indigo-500' },
-  { quote: 'O Postlee me permitiu escalar de 4 para 12 clientes sem contratar mais ninguém. O calendário visual é essencial.', name: 'Marcos T.', role: 'Social media freelancer', initials: 'MT', bg: 'bg-violet-500' },
-  { quote: 'Nunca vi uma IA gerar legendas tão naturais. Meu LinkedIn cresceu 340% em 3 meses.', name: 'Júlia M.', role: 'Criadora de conteúdo', initials: 'JM', bg: 'bg-emerald-500' },
+const reviews = [
+  {
+    name: 'Mariana Lima',
+    role: 'Social Media',
+    content: 'A Posta mudou minha forma de criar conteúdo. Em minutos eu tenho um carrossel lindo e pronto para postar.',
+    img: 'https://i.pravatar.cc/100?img=32'
+  },
+  {
+    name: 'Rafael Costa',
+    role: 'Fundador',
+    content: 'Os templates são incríveis e a IA entende exatamente o que meu público quer ver. Ganhei muito tempo e resultados!',
+    img: 'https://i.pravatar.cc/100?img=12'
+  },
+  {
+     name: 'Juliana Mendes',
+     role: 'Estrategista de Conteúdo',
+     content: 'Uso todos os dias na minha agência. Nossos clientes amaram a consistência e o engajamento aumentou.',
+     img: 'https://i.pravatar.cc/100?img=44'
+  }
 ];
 
 export default function Testimonials() {
   return (
-    <section className="section-padding bg-white">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="tag mb-4">Depoimentos</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-zinc-900 tracking-tight mb-4">
-            Quem usa, recomenda.
-          </h2>
-          <p className="text-zinc-500 text-[16px]">
-            Resultados reais de criadores e empreendedores brasileiros.
-          </p>
+    <section className="py-24 lg:py-32 bg-white">
+      <div className="section-container">
+        
+        <div className="max-w-2xl mb-16">
+            <div className="badge mb-4 bg-orange-50 text-orange-600 border-orange-100 uppercase">QUEM USA, APROVA</div>
+            <h2 className="text-4xl font-extrabold text-zinc-900 leading-tight">
+                Criadores e agências que crescem com a Posta.ai
+            </h2>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {testimonials.map(({ quote, name, role, initials, bg }, i) => (
-            <div key={i} className="p-7 rounded-2xl bg-[#fafafa] border border-zinc-100 flex flex-col justify-between gap-6 hover:shadow-lg hover:shadow-zinc-900/5 hover:border-zinc-200 transition-all">
-              {/* Stars */}
-              <div className="flex gap-0.5">
-                {Array(5).fill(0).map((_, s) => (
-                  <svg key={s} width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
+        <div className="grid lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3 grid md:grid-cols-3 gap-6">
+                {reviews.map((r, i) => (
+                    <div key={i} className="p-8 bg-[#fafafa] border border-gray-100 rounded-[32px] flex flex-col justify-between">
+                        <div>
+                            <div className="flex text-yellow-500 mb-6">
+                                {[1,2,3,4,5].map(star => <Star key={star} size={14} fill="currentColor" />)}
+                            </div>
+                            <p className="text-gray-600 font-medium leading-relaxed mb-8 italic">
+                                "{r.content}"
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3 pt-6 border-t border-gray-100">
+                            <img src={r.img} alt={r.name} className="w-10 h-10 rounded-full grayscale" />
+                            <div>
+                                <h4 className="font-bold text-zinc-900 text-sm">{r.name}</h4>
+                                <p className="text-gray-400 text-[11px] font-bold uppercase tracking-wider">{r.role}</p>
+                            </div>
+                        </div>
+                    </div>
                 ))}
-              </div>
-
-              <p className="text-sm text-zinc-600 leading-relaxed flex-1">"{quote}"</p>
-
-              <div className="flex items-center gap-3 pt-4 border-t border-zinc-100">
-                <div className={`w-9 h-9 rounded-full ${bg} flex items-center justify-center text-xs font-bold text-white`}>
-                  {initials}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-zinc-800">{name}</p>
-                  <p className="text-[11px] text-zinc-400">{role}</p>
-                </div>
-              </div>
             </div>
-          ))}
+
+            <div className="bg-[#5c54ed] rounded-[32px] p-8 text-white flex flex-col justify-between items-start">
+                <div>
+                     <p className="text-[11px] font-bold opacity-70 uppercase tracking-widest mb-6">Junte-se a nós</p>
+                     <h3 className="text-2xl font-extrabold leading-tight mb-8">
+                        Junte-se a mais de 10.000 criadores que já transformam ideias em carrosséis que geram resultado.
+                     </h3>
+                </div>
+                <div className="flex flex-col gap-6 w-full">
+                    <div className="flex -space-x-3">
+                        {[1,2,3,4].map(i => (
+                            <div key={i} className="w-10 h-10 rounded-full border-2 border-[#5c54ed] bg-white/20 overflow-hidden">
+                                <img src={`https://i.pravatar.cc/100?img=${i+50}`} alt="user" />
+                            </div>
+                        ))}
+                        <div className="w-10 h-10 rounded-full border-2 border-[#5c54ed] bg-white text-[#5c54ed] flex items-center justify-center text-xs font-bold">
+                            +10k
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
       </div>
     </section>
   );

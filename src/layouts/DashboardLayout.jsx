@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, CalendarDays, Palette, Settings, MessageSquarePlus, LogOut, Menu, X } from 'lucide-react';
+import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
+import { LayoutDashboard, CalendarDays, Palette, Settings, MessageSquarePlus, LogOut, Menu, X, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import CreatePostModal from '../components/dashboard/CreatePostModal';
 
 const navItems = [
@@ -11,8 +12,23 @@ const navItems = [
 ];
 
 export default function DashboardLayout() {
+  const { user, loading, logout } = useAuth();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#fafafa]"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-[#fafafa] flex font-sans">
@@ -37,7 +53,7 @@ export default function DashboardLayout() {
               <span className="text-white font-bold text-sm">P</span>
             </div>
             <span className="font-semibold tracking-tight text-zinc-900 text-lg">
-              Postlee<span className="text-indigo-500 font-normal">.ai</span>
+              Posta<span className="text-indigo-500 font-normal">.ai</span>
             </span>
           </div>
           <button className="ml-auto md:hidden text-zinc-400" onClick={() => setSidebarOpen(false)}>
@@ -84,14 +100,14 @@ export default function DashboardLayout() {
         <div className="p-4 border-t border-zinc-100">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-              <span className="text-sm font-bold text-indigo-700">LM</span>
+              <span className="text-sm font-bold text-indigo-700">{user.name ? user.name.substring(0, 2).toUpperCase() : 'US'}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-zinc-900 truncate">Leoni Medeiros</p>
-              <p className="text-xs text-zinc-500 truncate">Plano Plus</p>
+              <p className="text-sm font-semibold text-zinc-900 truncate">{user.name}</p>
+              <p className="text-xs text-zinc-500 truncate capitalize">Plano {user.plan}</p>
             </div>
           </div>
-          <button className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors w-full px-2">
+          <button onClick={handleLogout} className="flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors w-full px-2">
             <LogOut size={14} /> Sair da conta
           </button>
         </div>
@@ -104,7 +120,7 @@ export default function DashboardLayout() {
           <button className="text-zinc-600 p-2 -ml-2" onClick={() => setSidebarOpen(true)}>
             <Menu size={24} />
           </button>
-          <span className="font-semibold text-zinc-900 ml-2">Postlee.ai</span>
+          <span className="font-semibold text-zinc-900 ml-2">Posta.ai</span>
         </header>
 
         {/* Global Page Header Area (Optional, handled by Outlet pages) */}

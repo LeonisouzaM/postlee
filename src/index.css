@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Sora:wght@100..800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,61 +6,74 @@
 
 @layer base {
   body {
-    background-color: #fafafa;
-    color: #52525b;
+    background-color: #ffffff;
+    color: #4b5563;
     font-family: 'Inter', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    color: #18181b;
-    letter-spacing: -0.025em;
+    color: #111827;
+    font-family: 'Sora', 'Inter', sans-serif;
+    letter-spacing: -0.02em;
+    font-weight: 700;
   }
 }
 
 @layer components {
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
-           font-semibold text-white transition-all duration-200 text-sm
-           bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20;
+           font-semibold text-white transition-all duration-300 text-sm
+           bg-[#5c54ed] hover:bg-[#4a42d1] shadow-lg shadow-[#5c54ed]/25 hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           font-semibold text-zinc-900 bg-white border border-zinc-200
+           transition-all duration-300 hover:border-zinc-300 hover:bg-zinc-50 text-sm shadow-sm;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
-           font-semibold text-zinc-700 bg-white border border-zinc-200
-           transition-all duration-200 hover:border-zinc-300 hover:bg-zinc-50 text-sm shadow-sm;
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg
+           font-medium text-gray-600 transition-all duration-200 hover:text-gray-900 hover:bg-gray-50;
   }
 
-  .tag {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full
-           text-[11px] font-semibold tracking-wide uppercase
-           bg-indigo-50 text-indigo-600 border border-indigo-100;
+  .section-container {
+    @apply max-w-7xl mx-auto px-6;
   }
 
-  .section-padding {
-    @apply py-24 md:py-32;
+  .badge {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold
+           bg-[#eeedff] text-[#5c54ed] border border-[#e0ddff];
   }
 }
 
-::selection {
-  background: #c7d2fe;
-  color: #1e1b4b;
-}
+@layer utilities {
+  .bg-gradient-premium {
+    background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  }
 
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #fafafa; }
-::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+  .text-gradient {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-[#5c54ed] to-[#9249e4];
+  }
+}
 
 /* Animations */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes fadeIn {
+
+@keyframes fade-in {
   from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
 }
-.animate-fade-up { animation: fadeUp 0.6s ease both; }
-.animate-fade-in { animation: fadeIn 0.5s ease both; }
+
+.animate-fade-up { animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-fade-in { animation: fade-in 0.8s ease both; }
+
+/* Custom Carousel Stack Shadow */
+.carousel-card-shadow {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 10px 20px -5px rgba(0, 0, 0, 0.04);
+}
